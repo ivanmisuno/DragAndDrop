@@ -29,7 +29,8 @@ public struct DragView<Content, DragContent>: View where Content: View, DragCont
     private var dragContent: DragContentType
     private var dragginStoppedAction: ((_ isSuccessfullDrop: Bool) -> Void)?
     private let elementID: UUID
-    
+    private var translationAdjustment: ((DragGesture.Value) -> (CGSize))?
+
     /// Initialize this view with its unique ID and custom view.
     ///
     /// - Parameters:
@@ -73,7 +74,7 @@ public struct DragView<Content, DragContent>: View where Content: View, DragCont
                     DragGesture()
                         .onChanged { value in
                             withAnimation(.interactiveSpring()) {
-                                dragOffset = value.translation
+                                dragOffset = adjustedTranslationWhileDragging(value)
                             }
                         }
                         .simultaneously(with:
@@ -96,10 +97,23 @@ public struct DragView<Content, DragContent>: View where Content: View, DragCont
         new.dragginStoppedAction = action
         return new
     }
-    
+
+    /// Set an optional closure to calculate the adjustment to the position of the view,
+    /// eg when we want the view to be visible above the finger while dragging.
+    ///
+    /// - Parameter adjustment: A closure that can take startLocation of the touch,
+    ///     to calculate the adjustment.
+    ///
+    /// - Returns: A CGSize to be added to the translation to position the view while dragging.
+    public func translationAdjustmentWhileDragging(_ adjustment: ((DragGesture.Value) -> (CGSize))?) -> DragView {
+        var copy = self
+        copy.translationAdjustment = adjustment
+        return copy
+    }
+
     private func onDragChanged(_ value: DragGesture.Value) {
-        manager.report(drag: elementID, offset: value.translation)
-        
+        manager.report(drag: elementID, offset: adjustedTranslationWhileDragging(value))
+
         if !isDragging {
             isDragging = true
         }
@@ -120,5 +134,15 @@ public struct DragView<Content, DragContent>: View where Content: View, DragCont
             dragginStoppedAction?(false)
         }
         isDragging = false
+    }
+
+    private func adjustedTranslationWhileDragging(_ value: DragGesture.Value) -> CGSize {
+        guard isDragging, let translationAdjustment else {
+            return value.translation
+        }
+
+        let adjustment = translationAdjustment(value)
+        return CGSize(width: value.translation.width + adjustment.width,
+                      height: value.translation.height + adjustment.height)
     }
 }
