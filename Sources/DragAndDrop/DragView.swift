@@ -58,7 +58,7 @@ public struct DragView<Content, DragContent>: View where Content: View, DragCont
     
     public var body: some View {
         ZStack {
-            dragContent(DragInfo(didDrop: isDroped, isDragging: isDragging, isColliding: manager.isColliding(dragID: elementID)))
+            dragContent(DragInfo(didDrop: isDroped, isDragging: isDragging, isColliding: manager.isColliding(dragId: elementID)))
                 .offset(dragOffset)
                 .zIndex(isDragging ? 1 : 0)
             content(isDragging)
@@ -120,8 +120,8 @@ public struct DragView<Content, DragContent>: View where Content: View, DragCont
     }
     
     private func onDragEnded(_ value: DragGesture.Value) {
-        if manager.canDrop(id: elementID, offset: value.translation) {
-            manager.dropDragView(of: elementID, at: value.translation)
+        if manager.canDrop(id: elementID) {
+            manager.dropDragView(of: elementID)
             isDroped = true
             dragOffset = CGSize.zero
             manager.report(drag: elementID, offset: CGSize.zero)
