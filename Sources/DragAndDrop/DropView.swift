@@ -17,8 +17,7 @@ public struct DropView<Content>: View where Content: View {
     
     @EnvironmentObject private var manager: DragDropManager
     @State private var isDropped = false
-    
-    private let elementID: UUID
+    @State private var elementID: UUID
     private var canRecieveAnyDragView = false
     private let content: (_ dragInfo: DropInfo) -> Content
     private var receivedAction: ((_ receivingID: UUID) -> Void)?
@@ -37,7 +36,7 @@ public struct DropView<Content>: View where Content: View {
         }
         self.content = content
     }
-    
+
     public var body: some View {
         content(DropInfo(didDrop: isDropped, isColliding: manager.isColliding(dropId: elementID)))
             .background {
