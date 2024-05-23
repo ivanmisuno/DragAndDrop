@@ -49,6 +49,11 @@ public struct DropView<Content>: View where Content: View {
                                 canRecieveAnyDragView: canRecieveAnyDragView
                             )
                         }
+                        .onDisappear {
+                            self.manager.remove(
+                              dropViewId: elementID
+                            )
+                        }
                 }
             }
             .onChange(of: manager.droppedViewID) { newValue in

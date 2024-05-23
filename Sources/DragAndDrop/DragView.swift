@@ -68,6 +68,9 @@ public struct DragView<Content, DragContent>: View where Content: View, DragCont
                             .onAppear {
                                 self.manager.addFor(drag: elementID, frame: geometry.frame(in: .dragAndDrop))
                             }
+                            .onDisappear {
+                                self.manager.remove(dragViewId: elementID)
+                            }
                     }
                 }
                 .gesture(
