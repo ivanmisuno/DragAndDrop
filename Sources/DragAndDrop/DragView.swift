@@ -30,6 +30,7 @@ public struct DragView<Content, DragContent>: View where Content: View, DragCont
     private var dragginStoppedAction: ((_ isSuccessfullDrop: Bool) -> Void)?
     private let elementID: UUID
     private var translationAdjustment: ((DragGesture.Value) -> (CGSize))?
+    private var reportIsDraggingClosure: ((UUID, Bool) -> ())?
 
     /// Initialize this view with its unique ID and custom view.
     ///
@@ -88,6 +89,9 @@ public struct DragView<Content, DragContent>: View where Content: View, DragCont
                 )
         }
         .zIndex(isDragging ? 1 : 0)
+        .onChange(of: isDragging) { isDragging in
+            reportIsDraggingClosure?(elementID, isDragging)
+        }
     }
     
     /// An action indicating if the user has stopped dragging this view and indicates if it has dropped succesfuly on a `DropView` or not.
@@ -111,6 +115,12 @@ public struct DragView<Content, DragContent>: View where Content: View, DragCont
     public func translationAdjustmentWhileDragging(_ adjustment: ((DragGesture.Value) -> (CGSize))?) -> DragView {
         var copy = self
         copy.translationAdjustment = adjustment
+        return copy
+    }
+
+    public func reportIsDragging(_ closure: ((UUID, Bool) -> ())?) -> DragView {
+        var copy = self
+        copy.reportIsDraggingClosure = closure
         return copy
     }
 
