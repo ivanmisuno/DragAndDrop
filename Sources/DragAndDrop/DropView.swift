@@ -17,7 +17,7 @@ public struct DropView<Content>: View where Content: View {
     
     @EnvironmentObject private var manager: DragDropManager
     @State private var isDropped = false
-    @State private var elementID: UUID
+    @State private var elementId: UUID
     private var canRecieveAnyDragView = false
     private let content: (_ dragInfo: DropInfo) -> Content
     private var receivedAction: ((_ receivingID: UUID) -> Void)?
@@ -29,37 +29,37 @@ public struct DropView<Content>: View where Content: View {
     ///     - content: The view and area that will be able to be dropped.
     public init(receiveFrom id: UUID? = nil, @ViewBuilder content: @escaping (DropInfo) -> Content) {
         if let id = id {
-            self.elementID = id
+            self.elementId = id
         } else {
-            self.elementID = UUID()
+            self.elementId = UUID()
             canRecieveAnyDragView = true
         }
         self.content = content
     }
 
     public var body: some View {
-        content(DropInfo(didDrop: isDropped, isColliding: manager.isColliding(dropId: elementID)))
+        content(DropInfo(didDrop: isDropped, isColliding: manager.isColliding(dropId: elementId)))
             .background {
                 GeometryReader { geometry in
                     Color.clear
                         .onAppear {
-                            self.manager.addFor(
-                                drop: elementID,
+                            self.manager.add(
+                                dropId: elementId,
                                 frame: geometry.frame(in: .dragAndDrop),
                                 canRecieveAnyDragView: canRecieveAnyDragView
                             )
                         }
                         .onDisappear {
                             self.manager.remove(
-                              dropViewId: elementID
+                              dropId: elementId
                             )
                         }
                 }
             }
-            .onChange(of: manager.droppedViewID) { newValue in
-                if newValue == elementID {
+            .onChange(of: manager.droppedId) { newValue in
+                if newValue == elementId {
                     isDropped = true
-                    if let dragId = manager.currentDraggingViewID {
+                    if let dragId = manager.currentDraggingId {
                         receivedAction?(dragId)
                     }
                 }

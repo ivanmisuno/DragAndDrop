@@ -28,7 +28,7 @@ public struct DragView<Content, DragContent>: View where Content: View, DragCont
     private let content: ContentType
     private var dragContent: DragContentType
     private var dragginStoppedAction: ((_ isSuccessfullDrop: Bool) -> Void)?
-    private let elementID: UUID
+    private let elementId: UUID
     private var translationAdjustment: ((DragGesture.Value) -> (CGSize))?
     private var reportIsDraggingClosure: ((UUID, Bool) -> ())?
 
@@ -38,7 +38,7 @@ public struct DragView<Content, DragContent>: View where Content: View, DragCont
     ///     - id: The unique id of this view.
     ///     - content: The custom content of this view and what will be dragged.
     public init(id: UUID, @ViewBuilder content: @escaping ContentType) where DragContent == Content {
-        self.elementID = id
+        self.elementId = id
         self.content = content
         self.dragContent = { _ in
             content(false)
@@ -52,14 +52,14 @@ public struct DragView<Content, DragContent>: View where Content: View, DragCont
     ///     - content: The custom content of this view.
     ///     - dragContent: A custom content for the dragging view.
     public init(id: UUID, @ViewBuilder content: @escaping ContentType, @ViewBuilder dragContent: @escaping DragContentType) {
-        self.elementID = id
+        self.elementId = id
         self.content = content
         self.dragContent = dragContent
     }
     
     public var body: some View {
         ZStack {
-            dragContent(DragInfo(didDrop: isDroped, isDragging: isDragging, isColliding: manager.isColliding(dragId: elementID)))
+            dragContent(DragInfo(didDrop: isDroped, isDragging: isDragging, isColliding: manager.isColliding(dragId: elementId)))
                 .offset(dragOffset)
                 .zIndex(isDragging ? 1 : 0)
             content(isDragging)
@@ -67,10 +67,10 @@ public struct DragView<Content, DragContent>: View where Content: View, DragCont
                     GeometryReader { geometry in
                         Color.clear
                             .onAppear {
-                                self.manager.addFor(drag: elementID, frame: geometry.frame(in: .dragAndDrop))
+                                self.manager.add(dragId: elementId, frame: geometry.frame(in: .dragAndDrop))
                             }
                             .onDisappear {
-                                self.manager.remove(dragViewId: elementID)
+                                self.manager.remove(dragId: elementId)
                             }
                     }
                 }
@@ -90,7 +90,7 @@ public struct DragView<Content, DragContent>: View where Content: View, DragCont
         }
         .zIndex(isDragging ? 1 : 0)
         .onChange(of: isDragging) { isDragging in
-            reportIsDraggingClosure?(elementID, isDragging)
+            reportIsDraggingClosure?(elementId, isDragging)
         }
     }
     
@@ -125,7 +125,7 @@ public struct DragView<Content, DragContent>: View where Content: View, DragCont
     }
 
     private func onDragChanged(_ value: DragGesture.Value) {
-        manager.report(drag: elementID, offset: adjustedTranslationWhileDragging(value))
+        manager.report(dragId: elementId, offset: adjustedTranslationWhileDragging(value))
 
         if !isDragging {
             isDragging = true
@@ -133,17 +133,17 @@ public struct DragView<Content, DragContent>: View where Content: View, DragCont
     }
     
     private func onDragEnded(_ value: DragGesture.Value) {
-        if manager.canDrop(id: elementID) {
-            manager.dropDragView(of: elementID)
+        if manager.canDrop(dragId: elementId) {
+          manager.drop(dragId: elementId)
             isDroped = true
             dragOffset = CGSize.zero
-            manager.report(drag: elementID, offset: CGSize.zero)
+            manager.report(dragId: elementId, offset: CGSize.zero)
             dragginStoppedAction?(true)
         } else {
             withAnimation(.spring()) {
                 dragOffset = CGSize.zero
             }
-            manager.report(drag: elementID, offset: CGSize.zero)
+            manager.report(dragId: elementId, offset: CGSize.zero)
             dragginStoppedAction?(false)
         }
         isDragging = false

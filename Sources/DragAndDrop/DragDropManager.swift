@@ -10,11 +10,11 @@ import SwiftUI
 /// Observable class responsible for maintaining the positions of all `DropView` and `DragView` views and checking if it is possible to drop
 class DragDropManager: ObservableObject {
 
-    @Published var droppedViewID: UUID? = nil
-    @Published var currentDraggingViewID: UUID? = nil
+    @Published var droppedId: UUID? = nil
+    @Published var currentDraggingId: UUID? = nil
     @Published var currentDraggingOffset: CGSize? = nil
 
-    @Published var currentDraggingViewCollidesWithDropViewId: UUID? = nil
+    @Published var currentDraggingViewCollidesWithDropId: UUID? = nil
 
     fileprivate struct RefCounted<T> {
         typealias T = T
@@ -34,60 +34,60 @@ class DragDropManager: ObservableObject {
     /// Register a new `DragView` to the drag list map.
     ///
     /// - Parameters:
-    ///     - id: The id of the view to drag.
+    ///     - dragId: The id of the view to drag.
     ///     - frame: The frame of the drag view.
-    func addFor(drag id: UUID, frame: CGRect) {
-        dragViewsMap.emplaceRef(forKey: id, value: frame)
+    func add(dragId: UUID, frame: CGRect) {
+        dragViewsMap.emplaceRef(forKey: dragId, value: frame)
     }
 
     /// Deregister a `DragView`.
     ///
     /// - Parameters:
-    ///     - dragViewId: The id of the view to drag.
+    ///     - dragId: The id of the view to drag.
     ///
     /// NB: When the same UUID is reused (eg., a `DragView` is created after dropping a view
     /// on the drop target), `addFor(drag:frame:)` is called before `remove(dragViewId:)`,
     /// resulting in the view ID not registering. To avoid this, internally we keep track of
     /// the times `addFor(drag:frame:)` and `remove(dragViewId:)` were called.
-    func remove(dragViewId: UUID) {
-        dragViewsMap.removeRef(forKey: dragViewId)
+    func remove(dragId: UUID) {
+        dragViewsMap.removeRef(forKey: dragId)
     }
 
     /// Register a new `DropView` to the drop list map.
     ///
     /// - Parameters:
-    ///     - id: The id of the drop view.
+    ///     - dropId: The id of the drop view.
     ///     - frame: The frame of the drag view.
     ///     - canRecieveAnyDragView: Can this drop view recieve any drag view.
-    func addFor(drop id: UUID, frame: CGRect, canRecieveAnyDragView: Bool) {
+    func add(dropId: UUID, frame: CGRect, canRecieveAnyDragView: Bool) {
         if canRecieveAnyDragView {
-            otherDropViewsMap.emplaceRef(forKey: id, value: frame)
+            otherDropViewsMap.emplaceRef(forKey: dropId, value: frame)
         } else {
-            dropViewsMap.emplaceRef(forKey: id, value: frame)
+            dropViewsMap.emplaceRef(forKey: dropId, value: frame)
         }
     }
 
     /// Deregister a new `DropView` to the drop list map.
     ///
     /// - Parameters:
-    ///     - dropViewId: The id of the drop view.
+    ///     - dropId: The id of the drop view.
     ///
     /// NB: When the same UUID is reused (eg., a `DropView` is created after dropping a view
     /// on the drop target), `addFor(drop: ...)` is called before `remove(dropViewId:)`,
     /// resulting in the view ID not registering. To avoid this, internally we keep track of
     /// the times `addFor(drop: ...)` and `remove(dropViewId:)` were called.
-    func remove(dropViewId: UUID) {
-        dropViewsMap.removeRef(forKey: dropViewId)
-        otherDropViewsMap.removeRef(forKey: dropViewId)
+    func remove(dropId: UUID) {
+        dropViewsMap.removeRef(forKey: dropId)
+        otherDropViewsMap.removeRef(forKey: dropId)
     }
 
     /// Keeps track of the current dragging view id and offset
     ///
     /// - Parameters:
-    ///     - id: The id of the drag view.
+    ///     - dragId: The id of the drag view.
     ///     - frame: The offset of the dragging view.
-    func report(drag id: UUID, offset: CGSize) {
-        currentDraggingViewID = id
+    func report(dragId: UUID, offset: CGSize) {
+        currentDraggingId = dragId
         currentDraggingOffset = offset
 
         updateCollisionState()
@@ -99,14 +99,14 @@ class DragDropManager: ObservableObject {
     ///
     /// - Returns: `True` if the dragging  view is colliding with the current drop view.
     func isColliding(dropId: UUID) -> Bool {
-        return currentDraggingViewCollidesWithDropViewId == dropId
+        return currentDraggingViewCollidesWithDropId == dropId
     }
 
     /// Check if the current dragging view is colliding.
     ///
     /// - Returns: `True` if the dragging view is colliding
     func isColliding(dragId: UUID) -> Bool {
-        return dragId == currentDraggingViewID && currentDraggingViewCollidesWithDropViewId != nil
+        return dragId == currentDraggingId && currentDraggingViewCollidesWithDropId != nil
     }
 
     /// Checks if it is possible to drop a `DragView` in a certain position where theres a `DropView`.
@@ -116,18 +116,18 @@ class DragDropManager: ObservableObject {
     ///     - offset: The current offset of the view you are dragging.
     ///
     /// - Returns: `True` if the view can be dropped at the position.
-    func canDrop(id: UUID) -> Bool {
-        return isColliding(dragId: id)
+    func canDrop(dragId: UUID) -> Bool {
+        return isColliding(dragId: dragId)
     }
 
     /// Tells that the current `DragView` will be dropped;
-    func dropDragView(of id: UUID) {
-        guard isColliding(dragId: id) else {
-            droppedViewID = nil
+    func drop(dragId: UUID) {
+        guard isColliding(dragId: dragId) else {
+            droppedId = nil
             return
         }
 
-        droppedViewID = currentDraggingViewCollidesWithDropViewId
+        droppedId = currentDraggingViewCollidesWithDropId
     }
 
     /// Pre-calculate the potential drop target view id based on overlapping frames of the drop
@@ -136,8 +136,8 @@ class DragDropManager: ObservableObject {
     /// Sets `self.currentDraggingViewCollidesWithDropViewId` to the potential drop target view id.
     private func updateCollisionState() {
         if let currentDraggingOffset,
-           let currentDraggingViewID,
-           let dragRect = dragViewsMap[currentDraggingViewID]?.value
+           let currentDraggingId,
+           let dragRect = dragViewsMap[currentDraggingId]?.value
         {
             let currentDraggingViewFrame = dragRect.offsetBy(
                 dx: currentDraggingOffset.width,
@@ -147,9 +147,9 @@ class DragDropManager: ObservableObject {
                 y: currentDraggingViewFrame.midY)
 
             // Check views that can only accept specific viewId first.
-            if let dropRect = dropViewsMap[currentDraggingViewID]?.value {
+            if let dropRect = dropViewsMap[currentDraggingId]?.value {
                 if dropRect.intersects(currentDraggingViewFrame) {
-                    currentDraggingViewCollidesWithDropViewId = currentDraggingViewID
+                    currentDraggingViewCollidesWithDropId = currentDraggingId
                     return
                 }
             }
@@ -174,12 +174,12 @@ class DragDropManager: ObservableObject {
                 }
 
             if let closestDropView {
-                currentDraggingViewCollidesWithDropViewId = closestDropView.0
+                currentDraggingViewCollidesWithDropId = closestDropView.0
                 return
             }
         }
 
-        currentDraggingViewCollidesWithDropViewId = nil
+        currentDraggingViewCollidesWithDropId = nil
     }
 }
 
