@@ -40,6 +40,15 @@ class DragDropManager: ObservableObject {
         dragViewsMap.emplaceRef(forKey: dragId, value: frame)
     }
 
+    /// Update frame for the given `DragView`, eg when view geometry changes.
+    ///
+    /// - Parameters:
+    ///     - dragId: The id of the view to drag.
+    ///     - frame: The frame of the drag view.
+    func update(dragId: UUID, frame: CGRect) {
+        dragViewsMap.updateValue(frame, forKey: dragId)
+    }
+
     /// Deregister a `DragView`.
     ///
     /// - Parameters:
@@ -64,6 +73,20 @@ class DragDropManager: ObservableObject {
             otherDropViewsMap.emplaceRef(forKey: dropId, value: frame)
         } else {
             dropViewsMap.emplaceRef(forKey: dropId, value: frame)
+        }
+    }
+
+    /// Update frame for the given `DropView`, eg when view geometry changes.
+    ///
+    /// - Parameters:
+    ///     - dropId: The id of the drop view.
+    ///     - frame: The frame of the drag view.
+    ///     - canRecieveAnyDragView: Can this drop view recieve any drag view.
+    func update(dropId: UUID, frame: CGRect, canRecieveAnyDragView: Bool) {
+        if canRecieveAnyDragView {
+            otherDropViewsMap.updateValue(frame, forKey: dropId)
+        } else {
+            dropViewsMap.updateValue(frame, forKey: dropId)
         }
     }
 
@@ -208,4 +231,11 @@ fileprivate extension Dictionary {
             self.removeValue(forKey: key)
         }
     }
+
+  mutating func updateValue<T>(_ value: T, forKey key: Key) where Value == DragDropManager.RefCounted<T> {
+      if var ref = self[key] {
+          ref.value = value
+          self[key] = ref
+      }
+  }
 }

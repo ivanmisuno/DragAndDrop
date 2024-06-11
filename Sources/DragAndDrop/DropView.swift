@@ -43,16 +43,13 @@ public struct DropView<Content>: View where Content: View {
                 GeometryReader { geometry in
                     Color.clear
                         .onAppear {
-                            self.manager.add(
-                                dropId: elementId,
-                                frame: geometry.frame(in: .dragAndDrop),
-                                canRecieveAnyDragView: canRecieveAnyDragView
-                            )
+                            self.manager.add(dropId: elementId, frame: geometry.frame(in: .dragAndDrop), canRecieveAnyDragView: canRecieveAnyDragView)
+                        }
+                        .onChange(of: geometry.frame(in: .dragAndDrop)) { newValue in
+                            self.manager.update(dropId: elementId, frame: newValue, canRecieveAnyDragView: canRecieveAnyDragView)
                         }
                         .onDisappear {
-                            self.manager.remove(
-                              dropId: elementId
-                            )
+                            self.manager.remove(dropId: elementId)
                         }
                 }
             }
