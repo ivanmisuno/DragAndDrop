@@ -31,6 +31,7 @@ public struct DragView<Content, DragContent>: View where Content: View, DragCont
     private let elementId: UUID
     private var translationAdjustment: ((DragGesture.Value) -> (CGSize))?
     private var reportIsDraggingClosure: ((UUID, Bool) -> ())?
+    private var onTappedClosure: ((UUID) -> ())?
 
     /// Initialize this view with its unique ID and custom view.
     ///
@@ -89,6 +90,10 @@ public struct DragView<Content, DragContent>: View where Content: View, DragCont
                                 .onChanged(onDragChanged(_:))
                                 .onEnded(onDragEnded(_:))
                         )
+                        .simultaneously(with:
+                            TapGesture(count: 1)
+                                .onEnded { onTappedClosure?(elementId) }
+                        )
                 )
         }
         .zIndex(isDragging ? 1 : 0)
@@ -102,7 +107,7 @@ public struct DragView<Content, DragContent>: View where Content: View, DragCont
     /// - Parameter action: An action that will happen after the user has stopped dragging. (Also tell if it has dropped or not on a `DropView`) .
     ///
     /// - Returns: A DragView with a dragging ended action trigger.
-    public func onDraggingEnded(action: @escaping (Bool) -> Void) -> DragView {
+    public func onDraggingEnded(action: @escaping (Bool) -> Void) -> Self {
         var new = self
         new.dragginStoppedAction = action
         return new
@@ -111,21 +116,39 @@ public struct DragView<Content, DragContent>: View where Content: View, DragCont
     /// Set an optional closure to calculate the adjustment to the position of the view,
     /// eg when we want the view to be visible above the finger while dragging.
     ///
-    /// - Parameter adjustment: A closure that can take startLocation of the touch,
-    ///     to calculate the adjustment.
+    /// - Parameter adjustment: A closure that takes `startLocation` of the touch,
+    ///     and computes the adjustment.
     ///
-    /// - Returns: A CGSize to be added to the translation to position the view while dragging.
-    public func translationAdjustmentWhileDragging(_ adjustment: ((DragGesture.Value) -> (CGSize))?) -> DragView {
+    /// - Returns: A DragView with the translation adjustment closure added.
+    public func translationAdjustmentWhileDragging(_ adjustment: ((DragGesture.Value) -> (CGSize))?) -> Self {
         var copy = self
         copy.translationAdjustment = adjustment
         return copy
     }
 
-    public func reportIsDragging(_ closure: ((UUID, Bool) -> ())?) -> DragView {
+    /// Set an optional closure to report if the view is dragging.
+    ///
+    /// - Parameter closure: A closure to be invoked when `isDragging` state changes.
+    ///
+    /// - Returns: A DragView with the `reportIsDraggingClosure` set.
+    public func reportIsDragging(_ closure: ((UUID, Bool) -> ())?) -> Self {
         var copy = self
         copy.reportIsDraggingClosure = closure
         return copy
     }
+
+    /// Set an optional closure to report tap gestire.
+    ///
+    /// - Parameter closure: A closure to be invoked when tap gesture is recognized.
+    ///
+    /// - Returns: A DragView with the `onTappedClosure` set.
+    public func onTapped(_ closure: ((UUID) -> ())?) -> Self {
+        var copy = self
+        copy.onTappedClosure = closure
+        return copy
+    }
+
+    // MARK: - Private
 
     private func onDragChanged(_ value: DragGesture.Value) {
         manager.report(dragId: elementId, offset: adjustedTranslationWhileDragging(value))
